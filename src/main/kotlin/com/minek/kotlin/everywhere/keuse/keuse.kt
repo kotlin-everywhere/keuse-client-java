@@ -1,16 +1,17 @@
 package com.minek.kotlin.everywhere.keuse
 
+import com.goebl.david.Webb
 import com.minek.kotlin.everywehre.keuson.convert.Converter
 import com.minek.kotlin.everywehre.keuson.convert.decoder
 import com.minek.kotlin.everywehre.keuson.convert.encoder
 import com.minek.kotlin.everywehre.keuson.decode.Decoder
+import com.minek.kotlin.everywehre.keuson.decode.decodeString
 import com.minek.kotlin.everywehre.keuson.encode.Encoder
 import com.minek.kotlin.everywehre.keuson.encode.encode
+import com.minek.kotlin.everywhere.kelibs.result.Err
 import com.minek.kotlin.everywhere.kelibs.result.Result
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
-import com.goebl.david.Webb
-import com.minek.kotlin.everywehre.keuson.decode.decodeString
 
 
 abstract class Crate {
@@ -56,12 +57,16 @@ class EndPoint<in P, out R>(private val crate: Crate, private val name: String, 
         get() = crate.url + '/' + name
 
     operator fun invoke(parameter: P): Result<String, R> {
-        return Webb.create()
-                .post(url)
-                .body(encode(parameterEncoder(parameter)))
-                .ensureSuccess()
-                .asString()
-                .body.let { decodeString(resultDecoder, it)}
+        return try {
+            Webb.create()
+                    .post(url)
+                    .body(encode(parameterEncoder(parameter)))
+                    .ensureSuccess()
+                    .asString()
+                    .body.let { decodeString(resultDecoder, it) }
+        } catch (e: Exception) {
+            Err(e.message ?: e.toString())
+        }
     }
 
     class Delegate<in P, out R>(private val crate: Crate, private val parameterConvert: Converter<P>, private val resultConverter: Converter<R>) : ReadOnlyProperty<Crate, EndPoint<P, R>> {
